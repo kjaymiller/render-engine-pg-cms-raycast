@@ -56,7 +56,17 @@ const FIREFOX = new Set([
   "Firefox Nightly",
   "Zen",
   "Zen Browser",
+  "zen", // frontmost process name in Auto mode
 ]);
+
+// A browser's scriptable AppleScript name can differ from the dropdown label and
+// from the frontmost process name. Zen is picked as "Zen Browser" and reports
+// frontmost as "zen", but AppleScript can only resolve it as "zen".
+const SCRIPTABLE_NAME: Record<string, string> = {
+  "Zen Browser": "zen",
+  Zen: "zen",
+};
+const asScriptable = (appName: string) => SCRIPTABLE_NAME[appName] ?? appName;
 
 async function readActiveTab(
   appName: string,
@@ -65,14 +75,15 @@ async function readActiveTab(
     return readFirefoxTab(appName);
   }
 
+  const app = asScriptable(appName);
   let script: string;
   if (WEBKIT.has(appName)) {
-    script = `tell application "${appName}"
+    script = `tell application "${app}"
       set theDoc to front document
       return (URL of theDoc) & linefeed & (name of theDoc)
     end tell`;
   } else if (CHROMIUM.has(appName)) {
-    script = `tell application "${appName}"
+    script = `tell application "${app}"
       set theTab to active tab of front window
       return (URL of theTab) & linefeed & (title of theTab)
     end tell`;
@@ -93,7 +104,7 @@ async function readActiveTab(
 async function readFirefoxTab(
   appName: string,
 ): Promise<{ url: string; title: string }> {
-  const script = `tell application "${appName}" to activate
+  const script = `tell application "${asScriptable(appName)}" to activate
 delay 0.3
 tell application "System Events"
   keystroke "l" using command down
@@ -186,26 +197,30 @@ export default async function Command(
   // in the same browser rather than the macOS default. Undefined when unknown
   // (e.g. the Browser Extension path), which falls back to the system default.
   let sourceApp: string | undefined;
-  if (preferredBrowser && preferredBrowser !== "auto") {
-    // A specific browser is pinned in preferences — read straight from it via
-    // AppleScript so it works even when that browser isn't frontmost.
-    try {
-      const read = await readActiveTab(preferredBrowser);
-      if (read.url && read.url !== "missing value") {
-        tab = read;
-        sourceApp = preferredBrowser;
-      } else {
-        readError = `No active tab URL in ${preferredBrowser}`;
+
+  // Prefer the Raycast Browser Extension in every mode: it reads the active tab
+  // natively for all supported browsers (incl. Firefox/Zen) with no AppleScript
+  // and no clipboard side effects. It's only unavailable when the extension
+  // isn't installed in the browser — in which case we fall back to AppleScript.
+  tab = await tabFromBrowserExtension();
+
+  if (!tab) {
+    if (preferredBrowser && preferredBrowser !== "auto") {
+      // A specific browser is pinned in preferences — read straight from it via
+      // AppleScript so it works even when that browser isn't frontmost.
+      try {
+        const read = await readActiveTab(preferredBrowser);
+        if (read.url && read.url !== "missing value") {
+          tab = read;
+          sourceApp = preferredBrowser;
+        } else {
+          readError = `No active tab URL in ${preferredBrowser}`;
+        }
+      } catch (err) {
+        readError = err instanceof Error ? err.message : String(err);
       }
-    } catch (err) {
-      readError = err instanceof Error ? err.message : String(err);
-    }
-  } else {
-    // Automatic: try the Raycast Browser Extension first (works for every
-    // browser, incl. Firefox/Zen); fall back to AppleScript against the
-    // frontmost browser.
-    tab = await tabFromBrowserExtension();
-    if (!tab) {
+    } else {
+      // Automatic: AppleScript against the frontmost browser.
       try {
         const appName = (await getFrontmostApplication()).name;
         const read = await readActiveTab(appName);
