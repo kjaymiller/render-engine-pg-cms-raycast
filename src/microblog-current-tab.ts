@@ -147,19 +147,22 @@ async function fetchOgImage(pageUrl: string): Promise<string> {
     if (!res.ok) return "";
 
     const head = (await res.text()).slice(0, 200_000);
-    const match =
-      head.match(
-        /<meta[^>]+property=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i,
-      ) ||
-      head.match(
-        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::url)?["']/i,
-      ) ||
-      head.match(
-        /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
-      );
-    if (!match) return "";
-
-    return new URL(match[1], pageUrl).toString();
+    // Try, in priority order, the common ways pages expose a share image.
+    // `property=` and `name=` are both accepted (sites use either), and
+    // content can appear before or after the identifying attribute.
+    const patterns = [
+      /<meta[^>]+(?:property|name)=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image(?::url)?["']/i,
+      /<meta[^>]+(?:property|name)=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']twitter:image(?::src)?["']/i,
+      /<meta[^>]+itemprop=["']image["'][^>]+content=["']([^"']+)["']/i,
+      /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i,
+    ];
+    for (const re of patterns) {
+      const m = head.match(re);
+      if (m) return new URL(m[1], pageUrl).toString();
+    }
+    return "";
   } catch {
     return "";
   }
@@ -218,13 +221,10 @@ export default async function Command(
     }
   }
 
-  // The composer reads `external_link` for the tab's URL; `url` is kept as a
-  // back-compat alias in case an older CMS build expects it.
+  // The composer (/c/{name}/new) reads `external_link` for the tab's URL —
+  // `url` is only a legacy alias, so we send the canonical field.
   const params = new URLSearchParams();
-  if (tab?.url) {
-    params.set("external_link", tab.url);
-    params.set("url", tab.url);
-  }
+  if (tab?.url) params.set("external_link", tab.url);
 
   const note = props.arguments.content?.trim();
   const content =
