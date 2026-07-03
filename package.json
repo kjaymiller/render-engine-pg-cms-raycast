@@ -1,0 +1,146 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "cms-microblog",
+  "title": "pg-cms Microblog",
+  "description": "Start a microblog post in render-engine-pg-cms from the active browser tab.",
+  "icon": "extension-icon.png",
+  "author": "kjaymiller",
+  "categories": [
+    "Web",
+    "Productivity"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "microblog-current-tab",
+      "title": "Microblog Current Tab",
+      "subtitle": "pg-cms",
+      "description": "Grab the frontmost browser's active tab and open the microblog composer prefilled. Does not publish.",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "content",
+          "type": "text",
+          "placeholder": "Optional note / commentary",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "quick-post",
+      "title": "Quick Microblog Post",
+      "subtitle": "pg-cms",
+      "description": "Compose a microblog in a Raycast form, then open the composer prefilled to review and publish. Does not publish.",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "cmsBase",
+      "title": "CMS Base URL",
+      "description": "Root URL of your render-engine-pg-cms instance.",
+      "type": "textfield",
+      "required": false,
+      "default": "https://cms.kjaymiller.dev"
+    },
+    {
+      "name": "contentType",
+      "title": "Content Type",
+      "description": "The content type slug to create (the {name} in /c/{name}/new).",
+      "type": "textfield",
+      "required": false,
+      "default": "microblog"
+    },
+    {
+      "name": "fetchImage",
+      "title": "External Image",
+      "label": "Pull the page's og:image into image_url",
+      "description": "Fetch the tab's page and prefill the external image from its og:image / twitter:image meta tag.",
+      "type": "checkbox",
+      "required": false,
+      "default": true
+    },
+    {
+      "name": "seedContentWithTitle",
+      "title": "Seed Content",
+      "label": "Prefill content with the page title when no note is given",
+      "description": "If you don't type a note, use the page title as the starting content.",
+      "type": "checkbox",
+      "required": false,
+      "default": false
+    },
+    {
+      "name": "defaultBrowser",
+      "title": "Default Browser",
+      "description": "Which browser's active tab to read. Automatic uses the Raycast Browser Extension, then falls back to whichever browser is frontmost. Pick a specific browser to always read from it, even when it isn't frontmost.",
+      "type": "dropdown",
+      "required": false,
+      "default": "auto",
+      "data": [
+        {
+          "title": "Automatic (frontmost)",
+          "value": "auto"
+        },
+        {
+          "title": "Safari",
+          "value": "Safari"
+        },
+        {
+          "title": "Google Chrome",
+          "value": "Google Chrome"
+        },
+        {
+          "title": "Brave Browser",
+          "value": "Brave Browser"
+        },
+        {
+          "title": "Microsoft Edge",
+          "value": "Microsoft Edge"
+        },
+        {
+          "title": "Arc",
+          "value": "Arc"
+        },
+        {
+          "title": "Vivaldi",
+          "value": "Vivaldi"
+        },
+        {
+          "title": "Opera",
+          "value": "Opera"
+        },
+        {
+          "title": "Orion",
+          "value": "Orion"
+        },
+        {
+          "title": "Firefox",
+          "value": "Firefox"
+        },
+        {
+          "title": "Zen Browser",
+          "value": "Zen Browser"
+        }
+      ]
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.99.0",
+    "@raycast/utils": "^1.19.0"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^1.0.11",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "eslint": "^9.22.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "lint": "ray lint",
+    "fix-lint": "ray lint --fix",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}
